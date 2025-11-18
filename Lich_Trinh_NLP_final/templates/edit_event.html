@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Sửa sự kiện</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='edit_style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h2>✍️ Sửa Sự Kiện ID: {{ event['id'] }}</h2>
+
+    <form method="POST">
+        <input type="hidden" name="return_date" value="{{ prev_date }}">
+        <input type="hidden" name="location" value="{{ event['location'] if event['location'] else '' }}">
+
+        <div class="form-group">
+            <label for="name">Tên sự kiện:</label>
+            <input type="text" id="name" name="name" value="{{ event['name'] }}">
+        </div>
+
+        <div class="form-group">
+            <label for="start">Thời gian Bắt đầu:</label>
+            <input type="datetime-local" id="start" name="start" value="{{ event['start_html'] }}">
+        </div>
+
+        <div class="form-group">
+            <label for="end">Thời gian Kết thúc:</label>
+            <input type="datetime-local" id="end" name="end" value="{{ event['end_html'] }}">
+        </div>
+
+        <div class="form-group">
+            <label for="reminder">Nhắc nhở (phút trước):</label>
+            <input type="number" id="reminder" name="reminder" value="{{ event['reminder_minutes'] }}">
+        </div>
+
+        <button type="submit" class="update-button">Cập nhật</button>
+    </form>
+
+    <div class="back-link">
+        <a href="{{ url_for('index', date=prev_date) }}">⬅️ Quay lại trang chủ</a>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,136 @@
+/* --- style.css --- */
+
+/* Cài đặt chung cho Body */
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f4f4f9;
+    color: #333;
+}
+
+/* Tiêu đề */
+h2 {
+    color: #007bff;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+    margin-top: 25px;
+    font-size: 24px;
+}
+h3 {
+    color: #495057;
+    border-left: 5px solid #007bff;
+    padding-left: 10px;
+}
+
+/* Form */
+form {
+    margin-bottom: 20px;
+}
+input[type="text"], input[type="date"], input[type="datetime-local"], input[name="location"], input[name="reminder"], input[name="name"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+    box-sizing: border-box;
+    width: auto; /* Đảm bảo input không bị tràn khi không cần */
+}
+button {
+    padding: 10px 15px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+button:hover {
+    background-color: #218838;
+}
+.search-button {
+    background-color: #007bff;
+}
+.search-button:hover {
+    background-color: #0056b3;
+}
+hr {
+    border: 0;
+    height: 1px;
+    background-color: #ccc;
+    margin: 25px 0;
+}
+
+/* --- HIỂN THỊ DANH SÁCH SỰ KIỆN --- */
+.event-list {
+    list-style: none;
+    padding: 0;
+}
+.event-item {
+    background-color: white;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+.event-info {
+    flex-grow: 1;
+    font-size: 16px;
+    padding-right: 20px;
+}
+.event-name {
+    font-weight: bold;
+    color: #333;
+}
+.event-time {
+    color: #007bff;
+    font-weight: bold;
+    margin: 0 5px;
+}
+.event-date {
+    color: #999;
+    margin-left: 5px;
+}
+
+.event-actions {
+    /* Đảm bảo Sửa và Xóa nằm ngang hàng, sử dụng Flexbox */
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.event-actions form {
+    margin-bottom: 0; /* Quan trọng để không đẩy nút xuống dòng */
+    display: inline;
+}
+
+.event-actions a, .event-actions button {
+    margin-left: 5px;
+    text-decoration: none;
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 60px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* Màu sắc hành động */
+.edit-link {
+    background-color: #ffc107;
+    color: #333;
+    font-weight: bold;
+}
+.delete-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    font-weight: bold;
+}
+.edit-link:hover {
+    background-color: #e0a800;
+}
+.delete-button:hover {
+    background-color: #c82333;
+}

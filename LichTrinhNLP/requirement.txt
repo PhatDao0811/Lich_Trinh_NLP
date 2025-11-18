@@ -1,4 +1,0 @@
-underthesea
-python-dateutil
-scikit-learn
-tk
