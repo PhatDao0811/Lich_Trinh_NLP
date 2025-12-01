@@ -59,6 +59,39 @@ hr {
     margin: 25px 0;
 }
 
+/* NEW: Style cho cảnh báo nhắc nhở */
+.reminder-alert {
+    background-color: #fff3cd; /* Vàng nhạt */
+    color: #856404; /* Màu chữ nâu */
+    border: 1px solid #ffeeba;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+.reminder-alert p {
+    margin: 5px 0 0 0;
+    font-weight: normal;
+    font-size: 15px;
+}
+
+/* NEW: Style cho nút Export JSON */
+.export-button {
+    display: inline-block;
+    padding: 10px 15px;
+    background-color: #007bff; /* Xanh dương */
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+.export-button:hover {
+    background-color: #0056b3;
+}
+
+
 /* --- HIỂN THỊ DANH SÁCH SỰ KIỆN --- */
 .event-list {
     list-style: none;
@@ -95,13 +128,12 @@ hr {
 }
 
 .event-actions {
-    /* Đảm bảo Sửa và Xóa nằm ngang hàng, sử dụng Flexbox */
     display: flex;
     align-items: center;
     flex-shrink: 0;
 }
 .event-actions form {
-    margin-bottom: 0; /* Quan trọng để không đẩy nút xuống dòng */
+    margin-bottom: 0;
     display: inline;
 }
 

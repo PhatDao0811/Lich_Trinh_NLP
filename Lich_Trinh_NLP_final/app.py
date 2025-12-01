@@ -1,10 +1,43 @@
-from flask import Flask, request, render_template, redirect, url_for
-from database import init_db, add_event, get_events_by_date, get_event, update_event, delete_event
-from datetime import datetime
+from flask import Flask, request, render_template, redirect, url_for, jsonify, current_app
+from database import init_db, add_event, get_events_by_date, get_event, update_event, delete_event, get_all_events
+from datetime import datetime, timedelta
 import re
+import json
 
 app = Flask(__name__)
 init_db()
+
+
+def check_reminders():
+    """Kiểm tra sự kiện nào cần được nhắc nhở khi tải trang."""
+    all_events = get_all_events()
+    current_time = datetime.now()
+    due_reminders = []
+
+    for event in all_events:
+        # Bỏ qua nếu không có thời gian nhắc nhở
+        if not event['reminder_minutes'] or event['reminder_minutes'] <= 0:
+            continue
+
+        try:
+            event_start_time = datetime.fromisoformat(event['start'])
+            # Tính thời điểm cần nhắc nhở
+            reminder_time = event_start_time - timedelta(minutes=event['reminder_minutes'])
+
+            # Kiểm tra: Thời điểm nhắc nhở đã qua và sự kiện chưa bắt đầu (hoặc chỉ mới bắt đầu 1 phút)
+            # Điều kiện này mô phỏng cửa sổ hiển thị pop-up khi người dùng truy cập
+            if reminder_time <= current_time <= event_start_time + timedelta(minutes=1):
+                # Đảm bảo sự kiện chưa kết thúc (hoặc đơn giản là chưa bắt đầu)
+                if current_time < event_start_time:
+                    due_reminders.append({
+                        'name': event['name'],
+                        'start': event['start'],
+                        'reminder_time': reminder_time.strftime('%H:%M, %d/%m')
+                    })
+        except ValueError:
+            continue
+
+    return due_reminders
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -27,7 +60,10 @@ def index():
 
     events = get_events_by_date(selected_date)
 
-    return render_template("index.html", events=events, selected_date=selected_date)
+    # 4. Kiểm tra nhắc nhở khi tải trang chính
+    due_reminders = check_reminders()
+
+    return render_template("index.html", events=events, selected_date=selected_date, due_reminders=due_reminders)
 
 
 @app.route("/add", methods=["POST"])
@@ -40,6 +76,7 @@ def add():
 
 
 def parse_text(text):
+    # ... (Hàm parse_text giữ nguyên) ...
     name = text
     reminder = 10
 
@@ -86,6 +123,7 @@ def parse_text(text):
         name = "Sự kiện không tên"
 
     return name, dt_iso, reminder
+    # ... (Hết hàm parse_text giữ nguyên) ...
 
 
 @app.route("/edit/<int:id>", methods=["GET", "POST"])
@@ -128,6 +166,23 @@ def delete(id):
 
     # Chuyển hướng về trang index với ngày đã chọn
     return redirect(url_for("index", date=selected_date))
+
+
+# NEW ROUTE: Chức năng xuất dữ liệu ra JSON
+@app.route("/export_json")
+def export_json():
+    events_data = get_all_events()
+
+    # Chuyển đổi list of dicts sang JSON string
+    json_string = json.dumps(events_data, indent=4, ensure_ascii=False)
+
+    # Tạo Response với header Content-Disposition để trình duyệt tải về file
+    response = current_app.response_class(
+        response=json_string,
+        mimetype='application/json',
+        headers={"Content-Disposition": "attachment; filename=events_export.json"}
+    )
+    return response
 
 
 if __name__ == "__main__":

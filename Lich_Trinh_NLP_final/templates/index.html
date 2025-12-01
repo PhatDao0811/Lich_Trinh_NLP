@@ -6,6 +6,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+
+    {% if due_reminders %}
+        <div class="reminder-alert">
+            🚨 **NHẮC NHỞ KHẨN CẤP:**
+            {% for r in due_reminders %}
+                <p>Sự kiện: <strong>{{ r['name'] }}</strong> (Bắt đầu: {{ r['start'].split('T')[1][:5] }} | Nhắc lúc: {{ r['reminder_time'] }})</p>
+            {% endfor %}
+        </div>
+        <hr>
+    {% endif %}
+
     <h2>➕ Thêm Sự Kiện qua AI</h2>
 
     <form action="/add" method="POST">
@@ -21,6 +32,8 @@
         <input type="date" name="date" value="{{ selected_date }}">
         <button class="search-button">Xem</button>
     </form>
+
+    <a href="{{ url_for('export_json') }}" class="export-button">📥 Xuất dữ liệu (.json)</a>
 
     {% if events %}
         <h3>🗓️ Kết quả (Ngày {{ selected_date }}):</h3>

@@ -88,3 +88,15 @@ def delete_event(id):
     conn.execute("DELETE FROM events WHERE id = ?", (id,))
     conn.commit()
     conn.close()
+
+
+# NEW FUNCTION: Lấy tất cả sự kiện cho chức năng Export và Nhắc nhở
+def get_all_events():
+    conn = get_db()
+    cursor = conn.execute("SELECT * FROM events")
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Chuyển đổi thành list of dicts để dễ dàng serialization sang JSON
+    events_list = [dict(row) for row in rows]
+    return events_list
