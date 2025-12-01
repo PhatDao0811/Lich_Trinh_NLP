@@ -35,6 +35,8 @@
         <a href="{{ url_for('export_ics') }}" class="export-button ics-button">icalendar (.ics)</a>
     </div>
 
+    <audio id="reminder-sound" src="{{ url_for('static', filename='alarm.mp3') }}" preload="auto"></audio>
+
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/vi.js'></script>
 
@@ -44,6 +46,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
             var calendar = new FullCalendar.Calendar(calendarEl, {
+                // Định cấu hình lịch
                 initialView: 'dayGridMonth',
                 locale: 'vi',
                 height: 'auto',
@@ -53,8 +56,10 @@
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
 
+                // Kết nối với API Backend để lấy sự kiện
                 events: '{{ url_for("events_feed") }}',
 
+                // Cấu hình khi nhấp vào sự kiện
                 eventClick: function(info) {
                     if (info.event.url) {
                         info.jsEvent.preventDefault();
@@ -68,9 +73,12 @@
         });
 
 
-        // --- LOGIC AJAX POLLING VÀ POP-UP ---
+        // --- LOGIC AJAX POLLING VÀ POP-UP CÓ ÂM THANH ---
         const POLLING_INTERVAL = 10000;
         const SEEN_REMINDERS_KEY = 'seenReminders';
+
+        // Lấy thẻ audio
+        const reminderSound = document.getElementById('reminder-sound');
 
         function getSeenReminders() {
             try {
@@ -99,6 +107,7 @@
 
         function fetchReminders() {
             const seenReminders = getSeenReminders();
+            let newReminderFound = false; // Biến cờ để kiểm tra có thông báo mới không
 
             fetch('{{ url_for("api_check_reminders") }}')
                 .then(response => response.json())
@@ -110,6 +119,9 @@
                         const eventId = r.id.toString();
 
                         if (!seenReminders.hasOwnProperty(eventId)) {
+                            // Đây là thông báo mới chưa được đóng
+                            newReminderFound = true;
+
                             const startTime = r.start.split('T')[1].substring(0, 5);
 
                             const listContent = `<li><strong>${r.name}</strong> (Bắt đầu: ${startTime} | Nhắc lúc: ${r.reminder_time})</li>`;
@@ -125,6 +137,15 @@
                             container.innerHTML += popupHTML;
                         }
                     });
+
+                    // PHÁT ÂM THANH KHI CÓ THÔNG BÁO MỚI XUẤT HIỆN
+                    if (newReminderFound && reminderSound) {
+                        reminderSound.currentTime = 0;
+                        reminderSound.play().catch(error => {
+                            // Bắt lỗi nếu trình duyệt chặn tự động phát
+                            console.log("Trình duyệt chặn phát âm thanh. Hãy tương tác với trang.");
+                        });
+                    }
                 })
                 .catch(error => console.error('Lỗi khi tải nhắc nhở:', error));
         }

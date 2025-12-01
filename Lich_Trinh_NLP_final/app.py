@@ -1,4 +1,6 @@
 from flask import Flask, request, render_template, redirect, url_for, jsonify, current_app
+# NEW IMPORT: dateutil để phân tích ngôn ngữ tự nhiên về ngày giờ
+from dateutil.parser import parse
 from database import init_db, add_event, get_events_by_date, get_event, update_event, delete_event, get_all_events, \
     get_events_by_range
 from datetime import datetime, timedelta
@@ -10,7 +12,6 @@ from pytz import timezone
 app = Flask(__name__)
 init_db()
 
-# Cần thiết cho iCalendar
 LOCAL_TIMEZONE = timezone('Asia/Ho_Chi_Minh')
 
 
@@ -28,9 +29,7 @@ def check_reminders():
             event_start_time = datetime.fromisoformat(event['start'])
             reminder_time = event_start_time - timedelta(minutes=event['reminder_minutes'])
 
-            # Cửa sổ thông báo: Từ thời điểm nhắc nhở đến 1 phút sau thời gian bắt đầu
             if reminder_time <= current_time <= event_start_time + timedelta(minutes=1):
-                # Đảm bảo sự kiện chưa kết thúc
                 if current_time < event_start_time:
                     due_reminders.append({
                         'id': event['id'],
@@ -44,10 +43,8 @@ def check_reminders():
     return due_reminders
 
 
-# CẬP NHẬT: Trang chủ chỉ hiển thị Lịch (FullCalendar)
 @app.route("/", methods=["GET", "POST"])
 def index():
-    # Giữ lại logic mặc định ngày hiện tại nếu cần, nhưng không dùng để truy vấn list
     selected_date = datetime.now().strftime('%Y-%m-%d')
     return render_template("index.html", selected_date=selected_date)
 
@@ -61,51 +58,61 @@ def add():
     return redirect(url_for("index"))
 
 
+# HÀM PARSE_TEXT ĐÃ CẬP NHẬT DÙNG dateutil
 def parse_text(text):
-    name = text
+    now = datetime.now()
     reminder = 10
 
+    # 1. Khởi tạo giá trị mặc định cho dateutil
+    # Nếu không tìm thấy ngày, nó sẽ dùng ngày hôm nay. Nếu không tìm thấy giờ, nó sẽ dùng giờ hiện tại.
+    dt_default = datetime(now.year, now.month, now.day, now.hour, now.minute)
+
+    parsed_dt = None
+
+    # Cố gắng Parse ngày tháng bằng dateutil
+    try:
+        # fuzzy=True cho phép bỏ qua các từ không liên quan. dayfirst=True ưu tiên format ngày/tháng.
+        # dateutil xử lý các từ khóa như 'tomorrow', 'next week', 'Friday', v.v.
+        parsed_dt = parse(text, default=dt_default, fuzzy=True, dayfirst=True)
+    except Exception:
+        pass
+
+        # 2. Sử dụng Regex để lọc Tên sự kiện (dựa trên các chuỗi ngày/giờ thường gặp)
+    # Chúng ta sử dụng regex để loại bỏ các phần có vẻ là ngày/giờ khỏi tên sự kiện.
+
+    # Regex cho: 10h30, 10:30
     time_pattern = r"(?:(\d{1,2})h\s*(\d{2})?|(\d{1,2}):(\d{2}))"
+    # Regex cho: 20/12/2025, 20/12
     date_pattern = r"(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?"
+    # Regex cho: ngày mai, tuần sau, thứ hai, etc.
+    relative_words_pattern = r"(?:ngày mai|ngày kia|tuần sau|thứ hai|thứ ba|thứ tư|thứ năm|thứ sáu|thứ bảy|chủ nhật|hôm sau|hôm nay|sáng|chiều|tối|ngày|tối nay|sáng mai)\s*"
+    # Regex cho: vào lúc, lúc, ngày, vào
     time_phrases = r"(?:vào\s+lúc|lúc|vào\s+thời\s+điểm|ngày|vào|)"
 
-    full_pattern = rf"\s*{time_phrases}\s*{time_pattern}.*?{date_pattern}"
+    # Regex tổng hợp để bắt các chuỗi ngày/giờ
+    full_pattern = rf"(\s*{time_phrases}\s*(?:{time_pattern}|{date_pattern}|{relative_words_pattern}))"
 
-    match = re.search(full_pattern, text, re.IGNORECASE)
+    # Lọc tên sự kiện: loại bỏ phần ngày tháng đã tìm thấy bằng regex
+    name = re.sub(full_pattern, '', text, 0, re.IGNORECASE).strip()
 
-    now = datetime.now()
-    year = now.year
-    hour = 0
-    minute = 0
-    day = now.day
-    month = now.month
+    # Xử lý trường hợp tên sự kiện quá ngắn hoặc bị loại bỏ hết
+    if not name:
+        name = text  # Dùng lại text gốc
+        # Lọc lại với một regex đơn giản hơn nếu cần, hoặc gán tên mặc định
+        if not name:
+            name = "Sự kiện không tên"
 
-    if match:
-        if match.group(1):
-            hour = int(match.group(1))
-            minute = int(match.group(2)) if match.group(2) else 0
-        elif match.group(3):
-            hour = int(match.group(3))
-            minute = int(match.group(4))
-
-        day = int(match.group(5))
-        month = int(match.group(6))
-
-        if match.group(7):
-            year = int(match.group(7))
-
-        try:
-            dt_iso = datetime(year, month, day, hour, minute).isoformat(timespec="minutes")
-        except ValueError:
-            dt_iso = now.isoformat(timespec="minutes")
-            name = "[LỖI NGÀY/THÁNG] " + name
+    # 3. Kết quả cuối cùng
+    if parsed_dt:
+        # Nếu dateutil parse thành công, sử dụng kết quả này
+        dt_iso = parsed_dt.isoformat(timespec="minutes")
     else:
+        # Nếu dateutil thất bại (rất hiếm khi xảy ra), dùng thời gian hiện tại
         dt_iso = now.isoformat(timespec="minutes")
 
-    name = re.sub(full_pattern, '', text, 1, re.IGNORECASE).strip()
-
-    if not name:
-        name = "Sự kiện không tên"
+    # Gán tên sự kiện bị lỗi nếu ngày/giờ không tìm thấy, chỉ để báo hiệu cho người dùng
+    # if dt_iso == now.isoformat(timespec="minutes") and name != "Sự kiện không tên":
+    #     name = "[LỖI PARSE NGÀY] " + name
 
     return name, dt_iso, reminder
 
@@ -114,7 +121,6 @@ def parse_text(text):
 def edit(id):
     event = get_event(id)
 
-    # Lấy ngày được truyền từ query param (hoặc ngày hiện tại nếu không có)
     prev_date = request.args.get("prev_date")
     if not prev_date and event:
         prev_date = event['start'].split('T')[0]
@@ -134,7 +140,6 @@ def edit(id):
 
         return_date = request.form.get("return_date")
 
-        # Chuyển hướng về trang index hoặc trang danh sách tổng (dựa vào return_date)
         if return_date == 'list_all':
             return redirect(url_for("list_all"))
         else:
@@ -146,29 +151,23 @@ def edit(id):
 @app.route("/delete/<int:id>", methods=["POST"])
 def delete(id):
     delete_event(id)
-    # Lấy ngày/route cần quay lại (từ hidden field trong form xóa)
     selected_date = request.form.get("selected_date")
 
-    # Chuyển hướng về trang tương ứng
     if selected_date == 'list_all':
         return redirect(url_for("list_all"))
     else:
         return redirect(url_for("index", date=selected_date))
 
 
-# NEW ROUTE: Danh sách tổng hợp tất cả sự kiện
 @app.route("/list_all", methods=["GET", "POST"])
 def list_all():
     all_events = get_all_events()
 
-    # Sắp xếp các sự kiện theo thời gian bắt đầu
     sorted_events = sorted(all_events, key=lambda x: x['start'])
 
-    # Render template mới
     return render_template("all_events.html", events=sorted_events)
 
 
-# API Endpoint cho FullCalendar
 @app.route("/api/events")
 def events_feed():
     start_date_iso = request.args.get('start')
@@ -177,7 +176,6 @@ def events_feed():
     if not start_date_iso or not end_date_iso:
         return jsonify([])
 
-    # Lấy phần ngày (YYYY-MM-DD)
     start_date = start_date_iso[:10]
     end_date = end_date_iso[:10]
 
@@ -189,7 +187,6 @@ def events_feed():
             'id': e['id'],
             'title': e['name'],
             'start': e['start'],
-            # Tạo URL để chuyển đến trang Edit. prev_date dùng để quay lại đúng ngày trên lịch sau khi sửa.
             'url': url_for('edit', id=e['id'], prev_date=e['start'].split('T')[0])
         }
         if e['end']:
