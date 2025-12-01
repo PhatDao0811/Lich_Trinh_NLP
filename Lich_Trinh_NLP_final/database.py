@@ -90,13 +90,29 @@ def delete_event(id):
     conn.close()
 
 
-# NEW FUNCTION: Lấy tất cả sự kiện cho chức năng Export và Nhắc nhở
 def get_all_events():
     conn = get_db()
     cursor = conn.execute("SELECT * FROM events")
     rows = cursor.fetchall()
     conn.close()
 
-    # Chuyển đổi thành list of dicts để dễ dàng serialization sang JSON
+    events_list = [dict(row) for row in rows]
+    return events_list
+
+
+# FUNCTION: Lấy sự kiện theo phạm vi ngày (dùng cho FullCalendar)
+def get_events_by_range(start_date_str, end_date_str):
+    """Lấy tất cả sự kiện có thời gian bắt đầu nằm trong khoảng [start_date_str, end_date_str]"""
+    conn = get_db()
+
+    # Sử dụng start_date_strT00:00:00 và end_date_strT23:59:59 để đảm bảo bao gồm toàn bộ ngày cuối
+    cursor = conn.execute(
+        "SELECT * FROM events WHERE start >= ? AND start <= ?",
+        (f"{start_date_str}T00:00:00", f"{end_date_str}T23:59:59")
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Chuyển đổi thành list of dicts
     events_list = [dict(row) for row in rows]
     return events_list

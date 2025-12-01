@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh Sách Sự Kiện Tổng Hợp</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="header-actions">
+        <a href="{{ url_for('index') }}" class="back-button">🏠 Về Lịch Chính</a>
+        <h2>📚 Danh Sách Tổng Hợp Tất Cả Sự Kiện</h2>
+    </div>
+
+    {% if events %}
+        <p>Tìm thấy **{{ events | length }}** sự kiện. Sắp xếp theo thứ tự thời gian.</p>
+        <ul class="event-list">
+            {% for e in events %}
+                {% set start_dt = e['start'].split('T') %}
+                {% set date_part = start_dt[0].split('-') %}
+                {% set time_part = start_dt[1][:5] %}
+
+                <li class="event-item">
+                    <div class="event-info">
+                        <span class="event-name">{{ e['name'] }}</span>
+                        lúc <span class="event-time">{{ time_part }}</span>
+                        <span class="event-date">| Ngày {{ date_part[2] }}/{{ date_part[1] }}/{{ date_part[0] }}</span>
+                    </div>
+
+                    <div class="event-actions">
+                        <a href="/edit/{{ e['id'] }}?prev_date=list_all" class="edit-link">Sửa</a>
+
+                        <form action="/delete/{{ e['id'] }}" method="POST" style="display:inline;">
+                            <input type="hidden" name="selected_date" value="list_all">
+                            <button type="submit" class="delete-button" onclick="return confirm('Bạn có chắc chắn muốn xóa sự kiện này?');">Xóa</button>
+                        </form>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Hiện không có sự kiện nào được lưu trong cơ sở dữ liệu.</p>
+    {% endif %}
+</body>
+</html>

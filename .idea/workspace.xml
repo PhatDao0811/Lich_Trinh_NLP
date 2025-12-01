@@ -5,10 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4a4cc2bd-4565-4de0-a672-78920ee43d23" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Lich_Trinh_NLP_final/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/Lich_Trinh_NLP_final/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Lich_Trinh_NLP_final/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/Lich_Trinh_NLP_final/database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Lich_Trinh_NLP_final/events.db" beforeDir="false" afterPath="$PROJECT_DIR$/Lich_Trinh_NLP_final/events.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Lich_Trinh_NLP_final/static/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/Lich_Trinh_NLP_final/static/style.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Lich_Trinh_NLP_final/templates/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/Lich_Trinh_NLP_final/templates/index.html" afterDir="false" />
     </list>

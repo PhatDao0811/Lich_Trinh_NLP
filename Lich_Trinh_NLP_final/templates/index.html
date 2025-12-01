@@ -4,18 +4,12 @@
     <meta charset="UTF-8">
     <title>Lịch thông minh</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
 </head>
 <body>
 
-    {% if due_reminders %}
-        <div class="reminder-alert">
-            🚨 **NHẮC NHỞ KHẨN CẤP:**
-            {% for r in due_reminders %}
-                <p>Sự kiện: <strong>{{ r['name'] }}</strong> (Bắt đầu: {{ r['start'].split('T')[1][:5] }} | Nhắc lúc: {{ r['reminder_time'] }})</p>
-            {% endfor %}
-        </div>
-        <hr>
-    {% endif %}
+    <div id="reminder-popup-container"></div>
 
     <h2>➕ Thêm Sự Kiện qua AI</h2>
 
@@ -26,43 +20,117 @@
 
     <hr>
 
-    <h2>📅 Xem Sự Kiện Theo Ngày</h2>
+    <h2>🗓️ Lịch Sự Kiện</h2>
 
-    <form method="POST">
-        <input type="date" name="date" value="{{ selected_date }}">
-        <button class="search-button">Xem</button>
-    </form>
+    <div class="list-group">
+        <a href="{{ url_for('list_all') }}" class="list-button">📝 Xem Danh Sách Tổng Hợp</a>
+    </div>
 
-    <a href="{{ url_for('export_json') }}" class="export-button">📥 Xuất dữ liệu (.json)</a>
+    <div id="calendar-container">
+        <div id="calendar"></div>
+    </div>
 
-    {% if events %}
-        <h3>🗓️ Kết quả (Ngày {{ selected_date }}):</h3>
-        <ul class="event-list">
-            {% for e in events %}
-                {% set start_dt = e['start'].split('T') %}
-                {% set date_part = start_dt[0].split('-') %}
-                {% set time_part = start_dt[1][:5] %}
+    <div class="export-group">
+        <a href="{{ url_for('export_json') }}" class="export-button json-button">📥 Xuất dữ liệu (.json)</a>
+        <a href="{{ url_for('export_ics') }}" class="export-button ics-button">icalendar (.ics)</a>
+    </div>
 
-                <li class="event-item">
-                    <div class="event-info">
-                        <span class="event-name">{{ e['name'] }}</span>
-                        lúc <span class="event-time">{{ time_part }}</span>
-                        <span class="event-date">| Ngày {{ date_part[2] }}/{{ date_part[1] }}/{{ date_part[0] }}</span>
-                    </div>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/vi.js'></script>
 
-                    <div class="event-actions">
-                        <a href="/edit/{{ e['id'] }}?prev_date={{ selected_date }}" class="edit-link">Sửa</a>
+    <script>
 
-                        <form action="/delete/{{ e['id'] }}" method="POST" style="display:inline;">
-                            <input type="hidden" name="selected_date" value="{{ selected_date }}">
-                            <button type="submit" class="delete-button" onclick="return confirm('Bạn có chắc chắn muốn xóa sự kiện này?');">Xóa</button>
-                        </form>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
-    {% elif selected_date %}
-        <p>Không có sự kiện nào cho ngày **{{ selected_date }}**.</p>
-    {% endif %}
+        // --- LOGIC FULLCALENDAR ---
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'vi',
+                height: 'auto',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+
+                events: '{{ url_for("events_feed") }}',
+
+                eventClick: function(info) {
+                    if (info.event.url) {
+                        info.jsEvent.preventDefault();
+                        window.location.href = info.event.url;
+                    }
+                },
+
+                eventColor: '#007bff'
+            });
+            calendar.render();
+        });
+
+
+        // --- LOGIC AJAX POLLING VÀ POP-UP ---
+        const POLLING_INTERVAL = 10000;
+        const SEEN_REMINDERS_KEY = 'seenReminders';
+
+        function getSeenReminders() {
+            try {
+                const stored = localStorage.getItem(SEEN_REMINDERS_KEY);
+                return stored ? JSON.parse(stored) : {};
+            } catch (e) {
+                console.error("Lỗi khi đọc localStorage:", e);
+                return {};
+            }
+        }
+
+        function markAsSeen(eventId) {
+            const seenReminders = getSeenReminders();
+            seenReminders[eventId] = Date.now();
+            try {
+                localStorage.setItem(SEEN_REMINDERS_KEY, JSON.stringify(seenReminders));
+            } catch (e) {
+                console.error("Lỗi khi ghi localStorage:", e);
+            }
+
+            const popup = document.getElementById('popup-' + eventId);
+            if (popup) {
+                popup.style.display = 'none';
+            }
+        }
+
+        function fetchReminders() {
+            const seenReminders = getSeenReminders();
+
+            fetch('{{ url_for("api_check_reminders") }}')
+                .then(response => response.json())
+                .then(reminders => {
+                    const container = document.getElementById('reminder-popup-container');
+                    container.innerHTML = '';
+
+                    reminders.forEach(r => {
+                        const eventId = r.id.toString();
+
+                        if (!seenReminders.hasOwnProperty(eventId)) {
+                            const startTime = r.start.split('T')[1].substring(0, 5);
+
+                            const listContent = `<li><strong>${r.name}</strong> (Bắt đầu: ${startTime} | Nhắc lúc: ${r.reminder_time})</li>`;
+
+                            const popupHTML = `
+                                <div class="reminder-popup" id="popup-${eventId}">
+                                    <h3>🔔 Nhắc nhở Lịch trình!</h3>
+                                    <ul>${listContent}</ul>
+                                    <button class="close-popup" onclick="markAsSeen(${eventId})">Đóng thông báo</button>
+                                </div>
+                            `;
+
+                            container.innerHTML += popupHTML;
+                        }
+                    });
+                })
+                .catch(error => console.error('Lỗi khi tải nhắc nhở:', error));
+        }
+
+        fetchReminders();
+        setInterval(fetchReminders, POLLING_INTERVAL);
+    </script>
 </body>
 </html>
