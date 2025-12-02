@@ -81,11 +81,11 @@ def parse_text(text):
     # Chúng ta sử dụng regex để loại bỏ các phần có vẻ là ngày/giờ khỏi tên sự kiện.
 
     # Regex cho: 10h30, 10:30
-    time_pattern = r"(?:(\d{1,2})h\s*(\d{2})?|(\d{1,2}):(\d{2}))"
+    time_pattern = r"(?:(\d{1,2}):(\d{2}))?|(\d{1,2})h\s*(\d{2})"
     # Regex cho: 20/12/2025, 20/12
     date_pattern = r"(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?"
     # Regex cho: ngày mai, tuần sau, thứ hai, etc.
-    relative_words_pattern = r"(?:ngày mai|ngày kia|tuần sau|thứ hai|thứ ba|thứ tư|thứ năm|thứ sáu|thứ bảy|chủ nhật|hôm sau|hôm nay|sáng|chiều|tối|ngày|tối nay|sáng mai)\s*"
+    relative_words_pattern = r"(?:ngày mai|sáng mai|chiều mai|ngày kia|tuần sau|thứ hai|thứ ba|thứ tư|thứ năm|thứ sáu|thứ bảy|chủ nhật|hôm sau|hôm nay|hôm trước|sáng nay|sáng mốt|sáng kia|sáng ngày kia|sáng kìa|chiều nay|chiều mai|chiều mốt|tối nay|tối mai|tối mốt|tối ngày kia|mai|tối|sáng|chiều)\s*"
     # Regex cho: vào lúc, lúc, ngày, vào
     time_phrases = r"(?:vào\s+lúc|lúc|vào\s+thời\s+điểm|ngày|vào|)"
 
